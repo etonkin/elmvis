@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>D3 Test</title>
+        <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+        <style type="text/css">
+            div.bar {
+                display: inline-block;
+                width: 10px;
+                height: 75px;   /* We'll override this later */
+                background-color: teal;
+                margin-right: 2px;
+            }
+
+            body {
+              font: 10px sans-serif;
+            }
+
+            .axis path,
+            .axis line {
+              fill: none;
+              stroke: none;
+              shape-rendering: crispEdges;
+            }
+            .x.axis text {
+             
+            }
+
+            .y.axis{
+              opacity: 0.3;
+            }
+
+            .barUp {
+              fill: steelblue;
+            }
+
+            .x.axis path {
+              display: none;
+            }
+
+            .label{
+font-size: 12px;
+
+            }
+
+        </style>
+    </head>
+    <body>
+        <script type="text/javascript">
+
+    var entireDataset;
+
+
+    d3.csv("distances_migration.csv", function(error, data) {
+
+
+        var selectedDistrict = "Bolton";
+          
+          //drawBarChart(data);
+
+          //var inOutWithin = inOutForDistrict("Bedford", data);
+
+              // will be here that the leftandrightsetfordistrict is called
+         // console.log(leftAndRightSetforDistrict('Nottingham',data));
+
+         // console.log(inOutWithin.inwards);
+
+         entireDataset = data;
+
+         update(selectedDistrict);
+
+        });
+
+      function update(selectedDistrict){
+          var inOut = leftAndRightSetforDistrict(selectedDistrict,entireDataset);
+
+          var max = d3.max(entireDataset, function(d) { return d.Amount; })
+          console.log(max);
+
+          drawBarChart(inOut["origins"], "leftHistogram", max,true);
+
+          d3.select("#rightHistogram").style("left",(inOut["origins"].length *5+100)+"px");
+
+          d3.select("#glyph").style("left",(inOut["origins"].length*5+100)+"px");
+          d3.select("#glyph").style("top",(window.innerHeight-250)+"px");
+
+          drawGlyph(1, getAggregateValues(inOutForDistrict(selectedDistrict,entireDataset)),selectedDistrict);
+
+          drawBarChart(inOut["destinations"], "rightHistogram", max,false);
+
+      }
+
+      function drawGlyph(glyphId, data, district)
+        {
+         //Create SVG element
+
+            var drawingContext = d3.select("#glyph")
+            .append("svg")
+            .attr("width", 100)
+            .attr("height", 200);   
+
+            var x = 50;
+            var y = 50; 
+      
+      var visdistrict=district.split(/[- ]/);
+      for(var a=0; a<visdistrict.length; a++){
+          var label = drawingContext.append("text")
+                  .text(visdistrict[a])
+                  .attr("style","text-anchor:middle;font-size:13px")
+                  .attr("x",50)
+                  .attr("y",130+(13*a))
+                  .attr("width",100)
+      .attr;
+          }
+
+      var circlesTotal = drawingContext
+            .selectAll("circle.total circle.glyph" + glyphId + "")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("class", "total glyph" + glyphId + "")
+            .attr("cx", function(d, i) { return x;})
+            .attr("cy", y)
+            .attr("r", function(d) { 
+
+      /* var reportstring=Math.log(d.inbound) +" "+Math.log(d.local) +" "+ Math.log(d.outbound);
+      var reportstring2=d.inbound +" "+d.local +" "+ d.outbound;
+           console.log(reportstring2);
+      return (Math.log(d.inbound) + Math.log(d.local) + Math.log(d.outbound));*/
+      return ((Math.sqrt(d.inbound) + Math.sqrt(d.local) + Math.sqrt(d.outbound))*0.1);
+       })
+          //  .attr("stroke", "#000000")
+            .attr("stroke-width", 1)
+            .attr("fill", "#ddd")
+            ;
+
+
+
+      /*var circle2Within = drawingContext
+            .selectAll("circle.within circle.glyph" + glyphId + "")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("class", "within glyph" + glyphId + "")
+            .attr("cx", function(d, i) { return x;})
+            .attr("cy", y)
+            .attr("r", function(d) { return Math.log(d.local)+Math.log(d.inbound); })
+            .attr("stroke", "#00aa00")
+            ;*/
+
+      var circlesWithin = drawingContext
+            .selectAll("circle.within circle.glyph" + glyphId + "")
+            .data(data)
+            .enter()
+            .append("circle")
+            .attr("class", "within glyph" + glyphId + "")
+            .attr("cx", function(d, i) { return x;})
+            .attr("cy", y)
+            .attr("r", function(d) { 
+    //return Math.log(d.local); 
+    return Math.sqrt(d.local)*0.1; 
+
+    })
+            .attr("stroke", "#00aa00")
+            .attr("fill", "#00aa00")
+            ;
+      var arrowShapeString = "M-0.5,-0.433 L0.5,-0.433 0,0.433Z";
+
+      var arrowIn = drawingContext
+            .selectAll("path.inarrow path.glyph" + glyphId)
+            .data(data)
+            .enter()
+            .append("path")
+            .attr("class", "inarrow glyph" + glyphId)
+            .attr("d", arrowShapeString)
+            .attr("transform", function(d, i) { 
+    return "translate(" + x + ", " + ( y - Math.log(d.local)*2 - 25)  + ") scale(" + Math.sqrt(d.inbound)*0.5 + ")"; 
+    } )
+            .attr("stroke", "none")
+            .attr("fill", "#aaa")
+            ;
+      var mydat=data[0];
+      console.log(mydat);
+  
+      var labelIn = drawingContext.append("text")
+                  .text(mydat["inbound"]+mydat["local"])
+                  .attr("style","text-anchor:middle;font-size:10px; ")
+                  .attr("x",50)
+                  .attr("y",9)
+                  .attr("width",100)
+                  .attr;
+
+      var arrowOut = drawingContext
+            .selectAll("path.outarrow path.glyph" + glyphId)
+            .data(data)
+            .enter()
+            .append("path")
+            .attr("class", "outarrow glyph" + glyphId)
+            .attr("d", arrowShapeString)
+            .attr("transform", function(d, i) { 
+    return "translate(" + x + ", " + ( y + Math.log(d.local)*2 + 25)  + ") scale(" + Math.sqrt(d.outbound)*0.5 + ")"; 
+    } )
+            .attr("stroke", "none")
+            .attr("fill", "#aaa")
+            ;
+
+      var labelOut = drawingContext.append("text")
+                  .attr("style","text-anchor:middle;font-size:10px; ")
+                  .text(mydat["outbound"]+mydat["local"])
+                  .attr("x",50)
+                  .attr("y",100)
+                  .attr("width",100)
+                  .attr;
+            var labelCentre = drawingContext.append("text")
+                  .text(mydat["local"])
+                  .attr("style","text-anchor:middle;font-size:10px; ")
+                  .attr("x",50)
+                  .attr("y",53)
+                  .attr("width",100)
+                  .attr;
+
+        
+        }
+        function drawBarChart(data,id, yRange,inwards){
+
+         var margin = {top: 30, right: 20, bottom: 200, left: 100},
+            width = data.length*7,
+            height = window.innerHeight-200;
+
+        var format = d3.format("g");
+
+        //define the scale of the Axes
+        //should be a log Scale (does not work yet)
+        var x = d3.scale.linear()
+            .range([width, 0]);
+        var y = d3.scale.log()
+            .range([height, 0]);
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom");
+
+       // if(inwards){
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+            .tickFormat(format);
+            
+      /*  }else{
+          var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+            .tickFormat(format);
+            ;
+        }*/
+
+          //convert Strings into Numbers
+          data.forEach(function(d) {
+            d.Amount = +d.Amount;
+          });
+
+
+          //assign the domains to the Axes
+          x.domain(data.map(function(d) { return d.Origin; }));
+          y.domain([1, yRange]);
+
+          //add the svg to the right div
+          var svg = d3.select("#"+id).append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+          //draw the x Axis
+          svg.append("g")
+              .attr("class", "x axis")
+              .attr("transform", "translate(0," + height + ")")
+              .call(xAxis)
+              ;
+
+          //draw the y Axis
+          var yAx = svg.append("g")
+              .attr("class", "y axis")
+              .call(yAxis);
+
+          if (true) {   
+          yAx.attr("style","opacity:0");
+              };
+
+
+              //draw a Bar
+            svg.selectAll(".barUp")
+              .data(data)
+              .enter().append("rect")
+              .attr("class", "barUp")
+              .attr("x", function(d,i) { 
+                return i*5;
+                })
+              .attr("width", 2)
+              .attr("y", function(d) { return y(d.Amount); })
+              .attr("height", function(d) { return height - y(d.Amount) +1; })
+
+              .on("mouseover", function(d,i) {
+                 var t =svg.append("text")
+                .attr("id","l"+i)
+                .attr("class", "label")
+                //.attr("transform", "translate("+ (i*2) +"," + height + ")")
+                .style("text-anchor", "end")
+                .attr("dx", "-.8em" )
+                .attr("dy", ".8em")
+                .attr("transform", "translate("+ (i*5) +"," + height + ") rotate(-75)")
+                ;
+
+                if(inwards){
+                  t.text(d.Amount + " "+ d.Origin );
+                }else{
+                  t.text(d.Amount + " " + d.Destination);
+                }
+            
+                console.log(d.Origin);
+              })
+              .on("mouseout", function(d,i) {
+
+                svg.select("#l"+i).remove();
+
+                console.log(d.Origin);
+              })
+              .on("click",function(d,i){
+                    clearHistogramsAndGlyph();
+                    if(inwards){
+                      update(d.Origin);
+                      console.log(d.Origin);
+                    }else{
+                      update(d.Destination);
+                      console.log(d.Destination);
+                    }
+                    
+              })
+              ;
+
+          }
+
+        function clearHistogramsAndGlyph(){
+          d3.select("#leftHistogram").selectAll("svg").remove();
+          d3.select("#rightHistogram").selectAll("svg").remove();
+          d3.select("#glyph").selectAll("svg").remove();
+
+        }
+
+
+
+        function inOutForDistrict(district, dataset){
+
+            var inwards = new Array;
+            var outwards = new Array;
+            var within = new Array;
+
+            for (var i = 0; i < dataset.length; i++) {
+                if (dataset[i].Origin == district && dataset[i].Destination == district) {
+                    within.push(dataset[i]);
+                }
+                else if (dataset[i].Origin == district) {
+                    outwards.push(dataset[i]);
+                }
+                else if (dataset[i].Destination == district) {
+                    inwards.push(dataset[i]);
+                };
+            };
+
+            var obj = new Object();
+
+            obj.inwards = inwards;
+            obj.outwards = outwards;
+            obj.within = within;
+
+            return obj;
+
+
+        };
+       /**
+        function that returns an array of (Origin, Amount) that send more people to <district>  and a set that contains all the districts in the form (Origin, Amount) where more people from <district> are moving to
+        */
+  function leftAndRightSetforDistrict(district,dataset){
+    // go through 'inwards' looking for destination, and 'outwards' looking for origin
+    // where items are in both origin and destination, choose the one where the magnitude is higher & delete the other
+    // finally create set 'origin' and 'destination' containing actual nodes that go in each.
+    //var termorigin=[];
+    //var termdestination=[];
+    var originindex=[];
+    var destinationindex=[];
+    var termviewcount=[];
+    for (var i = 0; i < dataset.length; i++) {
+      indexid=dataset[i].Origin+":"+dataset[i].Destination;
+      /*termindex[indexid]=i;*/
+      // don't think the loopback entries are in here  - but anyway...
+      if(dataset[i].Destination!=dataset[i].Origin){
+        if(dataset[i].Destination == district){
+          //termorigin[dataset[i].Origin]=-1*dataset[i].Amount;
+          originindex[dataset[i].Origin]=i;
+          if (termviewcount[dataset[i].Origin]){
+            termviewcount[dataset[i].Origin]=termviewcount[dataset[i].Origin]+1;
+          } else {
+            termviewcount[dataset[i].Origin]=1;
+          }
+          //console.log("Origin: "+indexid);
+        } else if(dataset[i].Origin==district){
+          //termdestination[dataset[i].Destination]=dataset[i].Amount;
+          destinationindex[dataset[i].Destination]=i;
+          if(termviewcount[dataset[i].Destination]){
+            termviewcount[dataset[i].Destination]=termviewcount[dataset[i].Destination]+1;
+          } else {
+            termviewcount[dataset[i].Destination]=1;
+          }
+          //console.log("Destination: "+indexid);
+
+        }
+      }
+    }
+    /* Any term that appears more than once in termviewcount needs reduction... people are both arriving and leaving to this destination */
+    for (var k in termviewcount){
+      if ( termviewcount[k]>1 ){
+        // it's a dupe!
+        if(dataset[originindex[k]].Amount > dataset[destinationindex[k]].Amount){
+         // console.log("To greater than from for k : "+k+ " ("+dataset[originindex[k]].Amount+">"+dataset[destinationindex[k]].Amount+")");
+          delete(destinationindex[k]);
+        } else if(dataset[originindex[k]].Amount==dataset[destinationindex[k]].Amount){
+    // do nothing, keep 'em in both
+  }else {
+        //  console.log("To less than or equal to from for k : "+k+ " ("+dataset[originindex[k]].Amount+"<"+dataset[destinationindex[k]].Amount+")");
+          // This really needs to change: there are far too many equals and it will unbalance (1s are very common - it's the power-law thing again)
+          delete(originindex[k]);
+        }
+      }
+    }
+    /* Now originindex contains the indices of every node that should be on left; destinationindex contains the ones for the right. */
+    var origins=new Array();
+    var destinations=new Array();
+    for (var k in originindex){
+      origins.push(dataset[originindex[k]]);
+    }
+    for(var k in destinationindex){
+      destinations.push(dataset[destinationindex[k]]);
+    }
+    /*
+    console.log(origins);
+    console.log(destinations);
+    console.log(originindex)
+    console.log(destinationindex)*/
+
+    origins.sort(compare);
+    destinations.sort(revcompare);
+    var results=[];
+    results["origins"]=origins;
+    results["destinations"]=destinations;
+
+    return(results);
+  };
+
+function revcompare(a,b) {
+  console.log(a.Amount);
+  /*if (a.Amount> b.Amount)
+     return -1;
+  if (a.Amount< b.Amount)
+    return 1;
+  return 0;*/
+  return (b.Amount - a.Amount);
+}
+function compare(a,b) {
+  /*if (a.Amount< b.Amount)
+     return -1;
+  if (a.Amount> b.Amount)
+    return 1;
+  return 0;*/
+  return (a.Amount - b.Amount);
+}
+
+  function getAggregateValues(d)
+    {
+            var inwards = 0;
+            for (var i = 0; i < d.inwards.length; i++) {
+              inwards = inwards + parseInt(d.inwards[i].Amount);
+            }
+            
+            var outwards = 0;
+            for (var i = 0; i < d.outwards.length; i++) {
+              outwards = outwards + parseInt(d.outwards[i].Amount);
+            }
+            
+            var withins = 0;
+            for (var i = 0; i < d.within.length; i++) {
+              withins = withins + parseInt(d.within[i].Amount);
+            }
+            
+            return [{"inbound":inwards, "local":withins, "outbound":outwards}];
+    }
+
+        </script>
+        <div id="leftHistogram" style="position:absolute; left:0; top:0;"></div>
+        <div id="glyph" style="position:absolute; left:0; top:250px;"></div>
+        <div id="rightHistogram" style="position:absolute; left:200px; top:0;"></div>
+    </body>
+</html>
