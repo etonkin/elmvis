@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>D3 Test</title>
+        <script type="text/javascript" src="lib/d3.v3.js"></script>
+        <style type="text/css">
+            div.bar {
+                display: inline-block;
+                width: 10px;
+                height: 75px;   /* We'll override this later */
+                background-color: teal;
+                margin-right: 2px;
+            }
+        </style>
+    </head>
+    <body>
+        <script type="text/javascript">
+
+        d3.csv("Commuting1991.csv", function(d) {
+            
+            var dataset = d;
+
+            var data = inOutWithinDistrict('Bedford',dataset);
+            
+            var sums = getAggregateValues(data);
+            
+			//Width and height
+			var w = 800;
+			var h = 400;
+						
+			//Create SVG element
+			var svg = d3.select("body")
+						.append("svg")
+						.attr("width", w)
+						.attr("height", h);
+
+			drawGlyph(svg, 1, getAggregateValues(inOutWithinDistrict('Stockport',dataset)), 200, 200);
+			drawGlyph(svg, 4, getAggregateValues(inOutWithinDistrict('Westminster',dataset)), 300, 200);
+			drawGlyph(svg, 2, getAggregateValues(inOutWithinDistrict('Bedford',dataset)), 400, 200);
+			drawGlyph(svg, 3, getAggregateValues(inOutWithinDistrict('Birmingham',dataset)), 500, 200);
+        });  
+
+		function getAggregateValues(d)
+		{
+            var inwards = 0;
+            for (var i = 0; i < d.inwards.length; i++) {
+            	inwards = inwards + parseInt(d.inwards[i].Amount);
+            }
+            
+            var outwards = 0;
+            for (var i = 0; i < d.outwards.length; i++) {
+            	outwards = outwards + parseInt(d.outwards[i].Amount);
+            }
+            
+            var withins = 0;
+            for (var i = 0; i < d.within.length; i++) {
+            	withins = withins + parseInt(d.within[i].Amount);
+            }
+            
+            return [{"inbound":inwards, "local":withins, "outbound":outwards}];
+		}
+
+		function drawGlyph(drawingContext, glyphId, data, x, y)
+        {
+			var circlesTotal = drawingContext
+						.selectAll("circle.total circle.glyph" + glyphId + "")
+						.data(data)
+						.enter()
+						.append("circle")
+						.attr("class", "total glyph" + glyphId + "")
+						;
+
+			circlesTotal.attr("cx", function(d, i) { return x;})
+				.attr("cy", y)
+				.attr("r", function(d) { return (Math.log(d.inbound) + Math.log(d.local) + Math.log(d.outbound)); })
+				.attr("stroke", "#000000")
+				.attr("stroke-width", 1)
+				.attr("fill", "#EEEEEE")
+				;
+
+			var circlesWithin = drawingContext
+						.selectAll("circle.within circle.glyph" + glyphId + "")
+						.data(data)
+						.enter()
+						.append("circle")
+						.attr("class", "within glyph" + glyphId + "")
+						;
+
+			circlesWithin.attr("cx", function(d, i) { return x;})
+				.attr("cy", y)
+				.attr("r", function(d) { return Math.log(d.local); })
+				.attr("stroke", "#00FF00")
+				.attr("fill", "#00FF00")
+				;
+
+			var arrowIn = drawingContext
+						.selectAll("path.inarrow path.glyph" + glyphId)
+						.data(data)
+						.enter()
+						.append("path")
+						.attr("class", "inarrow glyph" + glyphId)
+						;
+
+			var arrowShapeString = "M-0.5,-0.433 L0.5,-0.433 0,0.433Z";
+			
+			arrowIn.attr("d", arrowShapeString)
+				.attr("transform", function(d, i) { return "translate(" + x + ", " + ( y - Math.log(d.local)*2 - 25)  + ") scale(" + Math.log(d.inbound)*2 + ")"; } )
+				.attr("stroke", "none")
+				.attr("fill", "#FF0000")
+				;
+
+			var arrowOut = drawingContext
+						.selectAll("path.outarrow path.glyph" + glyphId)
+						.data(data)
+						.enter()
+						.append("path")
+						.attr("class", "outarrow glyph" + glyphId)
+						;
+
+			arrowOut.attr("d", arrowShapeString)
+				.attr("transform", function(d, i) { return "translate(" + x + ", " + ( y + Math.log(d.local)*2 + 25)  + ") scale(" + Math.log(d.outbound)*2 + ")"; } )
+				.attr("stroke", "none")
+				.attr("fill", "#0000FF")
+				;
+        }
+        
+        /**
+        district: String that contains the Name (key) of a district
+        dataset: dataset with rows in the format (Origin : "Belford", Destination : "City of London", Amount: "10")
+        returns object containing an array for inward connections, outward connections and movement within 
+
+        */    
+        function inOutWithinDistrict(district, dataset){
+
+            var inwards = new Array;
+            var outwards = new Array;
+            var within = new Array;
+
+            for (var i = 0; i < dataset.length; i++) {
+                if (dataset[i].Origin == district && dataset[i].Destination == district) {
+                    within.push(dataset[i]);
+                }
+                else if (dataset[i].Origin == district) {
+                    inwards.push(dataset[i]);
+                }
+                else if (dataset[i].Destination == district) {
+                    outwards.push(dataset[i]);
+                };
+            };
+
+            var obj = new Object();
+
+            obj.inwards = inwards;
+            obj.outwards = outwards;
+            obj.within = within;
+
+            return obj;
+
+
+        };
+        /**
+        function that return a set of row
+        */
+        function leftAndRightSetforDistrict(district,dataset){
+
+
+
+        };
+
+        </script>
+        <p></p>
+    </body>
+</html>
