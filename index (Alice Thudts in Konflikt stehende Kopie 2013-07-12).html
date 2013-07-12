@@ -15,18 +15,14 @@ h1 {
 	font-family: "Helvetica";
 	font-size: 30px;
 	font-weight: normal;
-	position: fixed;
-	width:100%;
 }
 
 h2 {
 	text-align: center;
-	margin: 60px 0 0 100px;
+	margin: 0 0 0 100px;
 	font-family: "Helvetica";
 	font-size: 18px;
 	font-weight: normal;
-		position: fixed;
-			width:100%;
 }
 
 .axis path,.axis line {
@@ -62,35 +58,12 @@ h2 {
 
 	fill: #333;
 }
-
-.label_top{
-	position: fixed;
-	top:100px;
-	color:#ddd;
-}
-
-.label_top h1{
-	font-weight: normal;
-	font-size: 30px;
-}
-
-.label_bottom h1{
-	font-weight: normal;
-	font-size: 30px;
-}
-
-.label_bottom{
-	position: fixed;
-	bottom:100px;
-	color:#ddd;
-}
 </style>
 </head>
 <body>
 	<script type="text/javascript">
 		var entireDataset;
 		var localpopulations = [];
-		var globalSelectedDistrict;
 
 		d3
 				.csv(
@@ -99,28 +72,15 @@ h2 {
 							//#localpopulations=moredata; 
 							for ( var i = 0; i < moredata.length; i++) {
 								//console.log(moredata[i]);
-								localpopulations[cleanClassName(moredata[i].Name)] = moredata[i].Population;
+								localpopulations[encodeURIComponent(moredata[i].Name)] = moredata[i].Population;
 							}
 						});
 
-		var originallabels=[];
-		d3.csv("nametrans.csv",function(error, data){
-				for(var i=0;i<data.length; i++){
-
-			       	var temp=data[i].Name.replace(/&/g,'and').replace(/[^a-zA-Z0-9.]/g,'_') 
-				console.log("Original "+data[i].Name+" , "+temp);
-				originallabels[temp]=data[i].Name;
-			}
-			console.log(originallabels);
-
-		});
-
 		d3.csv("distances_migration.csv", function(error, data) {
 
-			var selectedDistrict = "Westminster";
+			var selectedDistrict = "Bolton";
 
 			entireDataset = data;
-
 
 			d3.xml("mergedb.svg", "image/svg+xml",
 					function(xml) {
@@ -128,13 +88,10 @@ h2 {
 								xml.documentElement);
 						update(selectedDistrict);
 					});
+
 		});
 
 		function update(selectedDistrict) {
-			globalSelectedDistrict = selectedDistrict;
-			
-			d3.timer.flush();
-			
 			// var inOut = leftAndRightSetforDistrict(selectedDistrict,entireDataset);
 			var inOut = inOutForDistrict(selectedDistrict, entireDataset);
 
@@ -147,8 +104,7 @@ h2 {
 			drawBarChart(inOut.inwards, "leftHistogram", max, true);
 			drawBarChartUpsideDown(inOut.inwards, "leftHistogram", max, true);
 
-			d3.select("#leftHistogram").style("width",
-					widthLeftHist - 350 + "px");
+			d3.select("#leftHistogram").style("width", widthLeftHist-350 + "px");
 
 			d3.select("#glyph").style("left", widthLeftHist + "px");
 			d3.select("#glyph").style("top",
@@ -165,12 +121,12 @@ h2 {
 			drawBarChartUpsideDown(inOut.outwards, "rightHistogram", max, false);
 
 			//d3.selectAll(".district_polygon").attr("fill", "#E2C0FA");
-			d3.selectAll(".district_polygon").attr("style", "");
-			d3.selectAll(".district_polygon").attr("fill", "lightsteelblue");
-			d3.selectAll(".district_polygon").on("click", function(d, i) {
-						clearHistogramsAndGlyph();
-						update(d3.event.target.classList[1])
-					});
+			d3.selectAll(".district_polygon")
+				.attr("fill", "lightsteelblue")
+				.on("click", function(d, i) {
+							update(d3.event.target.classList[1])
+				})
+			;
 
 			for ( var i = 0; i < inOut.outwards.length; i++) {
 				d3.selectAll(
@@ -180,32 +136,20 @@ h2 {
 			}
 
 			for ( var i = 0; i < inOut.inwards.length; i++) {
-				d3.selectAll("." + cleanClassName(inOut.inwards[i].Origin))
+				d3.selectAll(
+						"." + cleanClassName(inOut.inwards[i].Origin))
 						.attr("fill", "steelblue");
 
 			}
 
-			d3.selectAll("." + inOut.within[0].Destination)
-// 					.transition()
-					.attr("fill", "orchid")
-// 					.duration(3000);
-					;
+			d3.selectAll(
+					"." + cleanClassName(inOut.within[0].Destination))
+					.attr("fill", "orchid");
 
 		}
 
 		function cleanClassName(name) {
-			return name.replace(/[^a-zA-Z0-9.]/g, '').replace(/ /g, '_');
-		}
-
-		function uncleanClassName(name)
-		{
-			if(originallabels[name])
-			{
-				districtname=originallabels[name];
-			} else {
-				districtname=name.replace(/_/g,' ');
-			}
-			return districtname;//.split(/[- ]/);
+			return name.replace(/[^a-zA-Z 0-9.]/g, '').replace(/ /g, '_');
 		}
 
 		function drawBarChartUpsideDown(data, id, yRange, inwards) {
@@ -312,40 +256,21 @@ h2 {
 
 						if (inwards) {
 							t.text(d.Amount + " " + d.Origin);
-							d3.selectAll("." + cleanClassName(d.Origin)).style(
-									"fill", "#333");
+							d3.selectAll("." + cleanClassName(d.Origin)).style("fill", "#333");
 						} else {
 							t.text(d.Amount + " " + d.Destination);
-							d3.selectAll("." + cleanClassName(d.Destination))
-									.style("fill", "#333");
+							d3.selectAll("." + cleanClassName(d.Destination)).style("fill","#333");
 						}
 
 						console.log(d.Origin);
-					}).on(
-					"mouseout",
-					function(d, i) {
+					}).on("mouseout", function(d, i) {
 						if (inwards) {
 
-							d3.selectAll("." + cleanClassName(d.Origin))
-									.transition()
-									.style("fill", "steelblue")
-									.duration(3000)
-									;
-						} else {
-							d3.selectAll("." + cleanClassName(d.Destination))
-									.transition()
-									.style("fill", "steelblue")
-									.duration(3000)
-									;
+							d3.selectAll("." + cleanClassName(d.Origin)).transition().style("fill","steelblue").duration(3000);
+						}else{
+							d3.selectAll("." + cleanClassName(d.Destination)).transition().style("fill","steelblue").duration(3000);
 
 						}
-
-						d3.selectAll(
-								"." + cleanClassName(globalSelectedDistrict))
-								.transition()
-								.style("fill", "orchid")
-								.duration(3000)
-								;
 
 						svg.select("#l" + i).remove();
 						svg.selectAll(".markerDot").remove();
@@ -353,16 +278,16 @@ h2 {
 						console.log("out " + d.Origin);
 
 					}).on("click", function(d, i) {
-				clearHistogramsAndGlyph();
-				if (inwards) {
-					update(d.Origin);
-					console.log(d.Origin);
-				} else {
-					update(d.Destination);
-					console.log(d.Destination);
-				}
+						clearHistogramsAndGlyph();
+						if (inwards) {
+							update(d.Origin);
+							console.log(d.Origin);
+						} else {
+							update(d.Destination);
+							console.log(d.Destination);
+						}
 
-			});
+					});
 
 		}
 
@@ -461,54 +386,34 @@ h2 {
 								i * 4 + 1).attr("cy", height + 25);
 
 						if (inwards) {
-							t.text(d.Amount + " " + uncleanClassName(d.Origin));
-							d3.selectAll("." + cleanClassName(d.Origin)).style(
-									"fill", "#333");
+							t.text(d.Amount + " " + d.Origin);
+							d3.selectAll("." + cleanClassName(d.Origin)).style("fill", "#333");
 						} else {
-							t.text(d.Amount + " " + uncleanClassName(d.Destination));
-							d3.selectAll("." + cleanClassName(d.Destination))
-									.style("fill", "#333");
+							t.text(d.Amount + " " + d.Destination);
+							d3.selectAll("." + cleanClassName(d.Destination)).style("fill","#333");
 						}
 
-// 						console.log(d.Origin);
-					}).on(
-					"mouseout",
-					function(d, i) {
+						console.log(d.Origin);
+					}).on("mouseout", function(d, i) {
 						if (inwards) {
 
-							d3.selectAll("." + cleanClassName(d.Origin))
-									.transition()
-									.style("fill", "steelblue")
-									.duration(3000)
-									;
-						} else {
-							d3.selectAll("." + cleanClassName(d.Destination))
-									.transition()
-									.style("fill", "steelblue")
-									.duration(3000)
-									;
+							d3.selectAll("." + cleanClassName(d.Origin)).transition().style("fill","steelblue").duration(3000);
+						}else{
+							d3.selectAll("." + cleanClassName(d.Destination)).transition().style("fill","steelblue").duration(3000);
 
 						}
+				svg.select("#l" + i).remove();
+				svg.selectAll(".markerDot").remove();
 
-						d3.selectAll(
-								"." + cleanClassName(globalSelectedDistrict))
-								.transition()
-								.style("fill", "orchid")
-								.duration(3000)
-								;
-
-						svg.select("#l" + i).remove();
-						svg.selectAll(".markerDot").remove();
-
-// 						console.log(d.Origin);
-					}).on("click", function(d, i) {
+				console.log(d.Origin);
+			}).on("click", function(d, i) {
 				clearHistogramsAndGlyph();
 				if (inwards) {
 					update(d.Origin);
-// 					console.log(d.Origin);
+					console.log(d.Origin);
 				} else {
 					update(d.Destination);
-// 					console.log(d.Destination);
+					console.log(d.Destination);
 				}
 
 			});
@@ -656,16 +561,7 @@ h2 {
 			var x = 50;
 			var y = 50;
 			var numrows = 0;
-			var districtname="";
-// 			console.log("Looking for something to replace "+district)
-// 			console.log(originallabels);
-// 			if(originallabels[district]){
-// 				districtname=originallabels[district];
-// 				console.log("am replacing district name");
-// 			} else {
-// 				districtname=district.replace(/_/g,' ');
-// 			}
-			var visdistrict = uncleanClassName(district).split(/[- ]/);
+			var visdistrict = district.split(/[- ]/);
 			for ( var a = 0; a < visdistrict.length; a++) {
 				var label = drawingContext.append("text").text(visdistrict[a])
 						.attr("style", "text-anchor:middle;font-size:13px")
@@ -673,7 +569,6 @@ h2 {
 								100).attr;
 				numrows = numrows + 1;
 			}
-// 			console.log(district);
 			if (getpopulation(district)) {
 				var poplabel = "Pop: " + getpopulation(district);
 				var plabel = drawingContext.append("text").text(poplabel).attr(
@@ -776,20 +671,17 @@ h2 {
 		}
 
 		function getpopulation(region) {
-// 			console.log(cleanClassName(region));
-			var theregion = cleanClassName(region);
+			var theregion = encodeURIComponent(region);
 			return (localpopulations[theregion]);
 		}
 	</script>
 	<h1>Distances in Migration Flows</h1>
-	<h2>How many people migrated how far within the UK?</h2>
-		<div class="label_top"><h1>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Distance&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;</h1><h2>in km</h2></div>
-	<div class="label_bottom"><h1>&gt;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Migration&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&gt;</h1><h2>in Number of People</h2></div>
+	<h2>How many poeple migrated how far within the UK?</h2>
 	<div id="map" style="position: fixed; left: -300px; top: -100px;"></div>
 	<div id="leftHistogram"
-		style="position: absolute; left: 350px; top: 100px;"></div>
-	<div id="glyph" style="position: absolute; left: 0; top: 350px;"></div>
+		style="position: absolute; left: 350px; top: 50;"></div>
+	<div id="glyph" style="position: absolute; left: 0; top: 250px;"></div>
 	<div id="rightHistogram"
-		style="position: absolute; left: 200px; top: 100px;"></div>
+		style="position: absolute; left: 200px; top: 50;"></div>
 </body>
 </html>
